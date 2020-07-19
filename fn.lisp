@@ -1,6 +1,10 @@
 ;;;; Better function names
 (defun println (&rest args)
   (format t "~{~a~^ ~}~%" args))
+(defun print (&rest args)
+  (format t "~{~a~^ ~}" args))
+(defun newline ()
+  (terpri))
 
 
 ;;;; Better defun macro,
@@ -141,20 +145,38 @@
                         (x (a b c))))))
 
 ;;;; End to end tests
+#|
+(defun test1 (a c)
+  (let ((b 1))
+    (let ((x (lambda (x) (* 2 x))))
+      (funcall x (funcall a b c))))) |#
 (defn test1 (a c)
   (define b 1)
   (define x (fn (x) (* 2 x)))
   (x (a b c)))
+
 (assert (= 4 (test1 #'+ 1)))
 
+#|
+(defun test2 (a c)
+  (let ((b 1))
+    (let ((x (lambda (x) (* 2 x))))
+      (multiple-value-bind (d e) (floor 5 4)
+        (funcall x (funcall a b c d e)))))) |#
 (defn test2 (a c)
   (define b 1)
   (define x (fn (x) (* 2 x)))
   (mdefine (d e) (floor 5 4))
   (x (a b c d e)))
+
 (assert (= 8 (test2 #'+ 1)))
 
+#|
+(defun test3 ()
+  (multiple-value-bind (s c) (values #'sin #'cos)
+    (+ (funcall s 0) (+ funcall c 0)))) |#
 (defn test3 ()
   (mdefine (s c) (values #'sin #'cos))
   (+ (s 0) (c 0)))
+
 (assert (= 1 (test3)))
