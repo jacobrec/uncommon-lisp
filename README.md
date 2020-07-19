@@ -22,8 +22,8 @@ Examples:
 ```
 
 ## Better function names
-Don't understand what `terpri` means, and your tired of having to
-write out `multiple-value-bind` all over the place? Me too.
+Don't understand what `terpri` means, tired of having to write out
+`multiple-value-bind` all over the place? Me too.
 
 - `println &rest args`: prints items space seperated, with a newline at end
 - `mlet`: alias for `multiple-value-bind`
