@@ -28,6 +28,10 @@
 (defun auto-funcall-args (args body &optional (is-quoted nil))
   (cond ((null body) body)
         ((not (listp body)) body)
+        ((and (listp (car body)) (listp body))
+         (cons
+          (auto-funcall-args args (car body) is-quoted)
+          (auto-funcall-args args (cdr body) is-quoted)))
 
         ;; (lambda (x) (x 2)) => (lambda (x) (funcall x 2))
         ((or (eq 'fn (car body)) (eq 'lambda (car body)))
@@ -46,23 +50,17 @@
            `(,head ,declares ,@bodies)))
 
         ;; any other non forms stage
-        ((not (listp (car body)))
-         (cons
-          (car body)
-          (auto-funcall-args args (cdr body) is-quoted)))
-
-
-        (t (let* ((body (mapcar #'macro-expand-if-not-fn-like body))
-                  (is-quoted (if (eq 'quote (caar body))
+        (t (let* ((body (macro-expand-if-not-fn-like body))
+                  (is-quoted (if (eq 'quote (car body))
                                 (not is-quoted)
                                 is-quoted)))
-             (cons
-              (if (member (caar body) args)
-                  (if is-quoted
-                      (car body)
-                      `(funcall ,(caar body) ,@(auto-funcall-args args (cdar body) is-quoted)))
-                  (auto-funcall-args args (car body) is-quoted))
-              (auto-funcall-args args (cdr body)))))))
+             (if (member (car body) args)
+                 (if is-quoted
+                     body
+                     `(funcall ,(car body) ,@(map 'list
+                                               (lambda (x) (auto-funcall-args args x is-quoted))
+                                               (cdr body))))
+                 (map 'list (lambda (x) (auto-funcall-args args x is-quoted)) body))))))
 
 
 (defmacro fn (args &rest body)
@@ -116,6 +114,16 @@
                             '((let ((x 1))
                                 `(a 1 2)
                                 `(funcall b 1 2))))))
+
+(assert (equal
+         '(x (funcall a 1 2))
+         (auto-funcall-args '(a)
+                             `(x (a 1 2)))))
+
+(assert (equal
+         '((x 1 (funcall a 8)) (funcall a 1 (funcall a 8)))
+         (auto-funcall-args '(a)
+                             '((x 1 (a 8)) (a 1 (a 8))))))
 
 (assert (equal
          '(function
